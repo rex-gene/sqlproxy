@@ -6,7 +6,7 @@ import (
 )
 
 func connect() (*SqlProxy, error) {
-	db := NewSqlProxy("root", "1881982050~!@", "123.59.24.181", "3306", "game")
+	db := NewSqlProxy("root", "123456", "123.59.11.11", "3306", "game")
 	err := db.Connect()
 	if err != nil {
 		return nil, err
