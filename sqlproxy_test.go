@@ -3,10 +3,11 @@ package sqlproxy
 import (
 	"fmt"
 	"testing"
+	"time"
 )
 
 func connect() (*SqlProxy, error) {
-	db := NewSqlProxy("root", "123456", "123.59.11.11", "3306", "game")
+	db := NewSqlProxy("root", "123456", "111.59.24.181", "3306", "game")
 	err := db.Connect()
 	if err != nil {
 		return nil, err
@@ -20,6 +21,7 @@ func TestQuery(t *testing.T) {
 	if err != nil {
 		t.Log(err)
 		t.Fail()
+		return
 	}
 
 	fieldArray := make([]string, 0, 32)
@@ -35,6 +37,7 @@ func TestQuery(t *testing.T) {
 	if err != nil {
 		t.Log(err)
 		t.Fail()
+		return
 	}
 
 	for _, dataMap := range resultMap {
@@ -44,11 +47,24 @@ func TestQuery(t *testing.T) {
 	}
 }
 
+func TestDisconnect(t *testing.T) {
+	db, err := connect()
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+
+	db.Close()
+
+	time.Sleep(1 * time.Second)
+}
+
 func TestUpdate(t *testing.T) {
 	db, err := connect()
 	if err != nil {
 		t.Log(err)
 		t.Fail()
+		return
 	}
 
 	feilds := make([]*FeildData, 0, 32)
@@ -61,5 +77,8 @@ func TestUpdate(t *testing.T) {
 		Condition: &FeildData{Name: "user_name", Value: "rex"},
 	}
 
-	db.SaveData(saveCmd)
+	list := db.GetSaveCmdList()
+	list <- saveCmd
+
+	time.Sleep(10 * time.Second)
 }
