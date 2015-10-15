@@ -67,14 +67,14 @@ func TestUpdate(t *testing.T) {
 		return
 	}
 
-	feilds := make([]*FeildData, 0, 32)
-	feilds = append(feilds, &FeildData{Name: "last_update_time", Value: "2015-12-05 10:00:00"})
+	fields := make([]*FieldData, 0, 32)
+	fields = append(fields, &FieldData{Name: "last_update_time", Value: "2015-12-05 10:00:00"})
 
 	saveCmd := &SaveCmd{
 		TableName: "users",
 		IsNew:     false,
-		Feilds:    feilds[:],
-		Condition: &FeildData{Name: "user_name", Value: "rex"},
+		Fields:    fields[:],
+		Condition: &FieldData{Name: "user_name", Value: "rex"},
 	}
 
 	list := db.GetSaveCmdList()

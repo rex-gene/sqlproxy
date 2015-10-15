@@ -12,7 +12,7 @@ const (
 	saveCmdMaxLen = 128
 )
 
-type FeildData struct {
+type FieldData struct {
 	Name  string
 	Value string
 }
@@ -24,8 +24,8 @@ type QueryCmd struct {
 
 type SaveCmd struct {
 	TableName string
-	Feilds    []*FeildData
-	Condition *FeildData
+	Fields    []*FieldData
+	Condition *FieldData
 	IsNew     bool
 }
 
@@ -63,45 +63,46 @@ func (this *SqlProxy) saveData(cmd *SaveCmd) error {
 
 	if cmd.IsNew {
 		sqlStr = "insert into " + cmd.TableName
-		feildNamesStr := "("
+		fieldNamesStr := "("
 		valuesStr := "("
 
-		for i, feildData := range cmd.Feilds {
+		for i, fieldData := range cmd.Fields {
 			if i == 0 {
-				feildNamesStr = feildNamesStr + ""
+				fieldNamesStr = fieldNamesStr + ""
 				valuesStr = valuesStr + ""
 			} else {
-				feildNamesStr = feildNamesStr + ","
+				fieldNamesStr = fieldNamesStr + ","
 				valuesStr = valuesStr + ","
 			}
 
-			feildNamesStr = feildNamesStr + feildData.Name
-			valuesStr = valuesStr + "'" + feildData.Value + "'"
+			fieldNamesStr = fieldNamesStr + fieldData.Name
+			valuesStr = valuesStr + "'" + fieldData.Value + "'"
 
 		}
 
-		feildNamesStr = feildNamesStr + ")"
+		fieldNamesStr = fieldNamesStr + ")"
 		valuesStr = valuesStr + ")"
 
-		sqlStr = sqlStr + feildNamesStr + " values " + valuesStr
+		sqlStr = sqlStr + fieldNamesStr + " values " + valuesStr
 	} else {
 		sqlStr = "update " + cmd.TableName + " set"
-		for i, feildData := range cmd.Feilds {
+		for i, fieldData := range cmd.Fields {
 			if i == 0 {
 				sqlStr = sqlStr + " "
 			} else {
 				sqlStr = sqlStr + ","
 			}
 
-			sqlStr = sqlStr + feildData.Name + " = '" + feildData.Value + "'"
+			sqlStr = sqlStr + fieldData.Name + " = '" + fieldData.Value + "'"
 		}
 
 		condition := cmd.Condition
-		if condition.Name != "" {
+		if condition != nil && condition.Name != "" {
 			sqlStr = sqlStr + " where " + condition.Name + " = '" + condition.Value + "'"
 		}
 	}
 
+	log.Println(sqlStr)
 	_, err := this.db.Exec(sqlStr)
 	if err != nil {
 		return err
