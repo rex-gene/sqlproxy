@@ -20,6 +20,7 @@ type FieldData struct {
 type QueryCmd struct {
 	TableName  string
 	FieldNames []string
+	Condition  *FieldData
 }
 
 type SaveCmd struct {
@@ -44,17 +45,15 @@ func (this *SqlProxy) messageLoop() {
 	for {
 		select {
 		case cmd := <-this.saveCmdList:
-			this.saveData(cmd)
+			this.SaveData(cmd)
 		case <-this.quitEvent:
-			goto QUIT
+			return
 		case <-time.After(time.Second):
 		}
 	}
-
-QUIT:
 }
 
-func (this *SqlProxy) saveData(cmd *SaveCmd) error {
+func (this *SqlProxy) SaveData(cmd *SaveCmd) error {
 	if this.db == nil {
 		return errors.New("connection already disconnect")
 	}
@@ -129,6 +128,10 @@ func (this *SqlProxy) GetSaveCmdList() chan<- *SaveCmd {
 	return this.saveCmdList
 }
 
+func (this *SqlProxy) PushSaveCmd(saveCmd *SaveCmd) {
+	this.saveCmdList <- saveCmd
+}
+
 func (this *SqlProxy) Connect() error {
 	if this.db != nil {
 		return errors.New("connection already connect")
@@ -177,6 +180,11 @@ func (this *SqlProxy) LoadData(queryData *QueryCmd) ([]map[string]string, error)
 	}
 
 	queryString = queryString + " from " + queryData.TableName
+	condition := queryData.Condition
+	if condition != nil && condition.Name != "" {
+		queryString = queryString + " where " + condition.Name + " = '" + condition.Value + "'"
+	}
+
 	log.Println("query string:", queryString)
 
 	rows, err := this.db.Query(queryString)
