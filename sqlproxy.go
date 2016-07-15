@@ -185,35 +185,38 @@ func (this *SqlProxy) LoadData(queryData *QueryCmd) ([]map[string]string, error)
 		queryString = queryString + " where " + condition.Name + " = '" + condition.Value + "'"
 	}
 
-	log.Println("query string:", queryString)
-
-	rows, err := this.db.Query(queryString)
-	if err != nil {
+	log.Println("[?] query string:", queryString)
+	row := this.db.QueryRow(queryString)
+	log.Println("[?] after query string")
+	if row == nil {
+		err := errors.New("query not found")
 		return nil, err
 	}
 
-	defer rows.Close()
-
 	dataMapList := make([]map[string]string, 0, 32)
-	for rows.Next() {
-		fieldNames := queryData.FieldNames
-		dataMap := make(map[string]string)
-		fieldLen := len(fieldNames)
-		results := make([]string, fieldLen)
-		interfaces := make([]interface{}, fieldLen)
+	fieldNames := queryData.FieldNames
+	dataMap := make(map[string]string)
+	fieldLen := len(fieldNames)
+	results := make([]string, fieldLen)
+	interfaces := make([]interface{}, fieldLen)
 
-		for i := 0; i < fieldLen; i++ {
-			interfaces[i] = &results[i]
-		}
-
-		rows.Scan(interfaces...)
-
-		for i, fieldName := range fieldNames {
-			dataMap[fieldName] = results[i]
-		}
-
-		dataMapList = append(dataMapList, dataMap)
+	log.Println("[?] before for interfaces:", fieldLen)
+	for i := 0; i < fieldLen; i++ {
+		interfaces[i] = &results[i]
 	}
+	log.Println("[?] after for interfaces")
+
+	log.Println("[?] before scan")
+	row.Scan(interfaces...)
+	log.Println("[?] after scan")
+
+	log.Println("[?] before fill")
+	for i, fieldName := range fieldNames {
+		dataMap[fieldName] = results[i]
+	}
+	log.Println("[?] after fill")
+
+	dataMapList = append(dataMapList, dataMap)
 
 	return dataMapList, nil
 }
