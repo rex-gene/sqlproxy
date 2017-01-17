@@ -5,11 +5,11 @@ import (
 	"errors"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
-	"time"
+	"sync"
 )
 
 const (
-	saveCmdMaxLen = 128
+	saveCmdMaxLen = 4096
 )
 
 type FieldData struct {
@@ -31,6 +31,7 @@ type SaveCmd struct {
 }
 
 type SqlProxy struct {
+	sync.RWMutex
 	user        string
 	password    string
 	ip          string
@@ -48,12 +49,14 @@ func (this *SqlProxy) messageLoop() {
 			this.SaveData(cmd)
 		case <-this.quitEvent:
 			return
-		case <-time.After(time.Second):
 		}
 	}
 }
 
 func (this *SqlProxy) SaveData(cmd *SaveCmd) error {
+	this.Lock()
+	defer this.Unlock()
+
 	if this.db == nil {
 		return errors.New("connection already disconnect")
 	}
@@ -164,6 +167,9 @@ func (this *SqlProxy) Close() error {
 }
 
 func (this *SqlProxy) LoadData(queryData *QueryCmd) ([]map[string]string, error) {
+	this.RLock()
+	defer this.RUnlock()
+
 	if this.db == nil {
 		return nil, errors.New("connection already disconnect")
 	}
@@ -186,37 +192,36 @@ func (this *SqlProxy) LoadData(queryData *QueryCmd) ([]map[string]string, error)
 	}
 
 	log.Println("[?] query string:", queryString)
-	row := this.db.QueryRow(queryString)
+	rows, err := this.db.Query(queryString)
+	if err != nil {
+		return nil, errors.New("can not read data")
+	}
 	log.Println("[?] after query string")
-	if row == nil {
-		err := errors.New("query not found")
-		return nil, err
+
+	dataMapList := make([]map[string]string, 0, 4096)
+
+	for rows.Next() {
+		fieldNames := queryData.FieldNames
+		dataMap := make(map[string]string)
+		fieldLen := len(fieldNames)
+		results := make([]string, fieldLen)
+		interfaces := make([]interface{}, fieldLen)
+
+		for i := 0; i < fieldLen; i++ {
+			interfaces[i] = &results[i]
+		}
+
+		err = rows.Scan(interfaces...)
+		if err != nil {
+			return dataMapList, err
+		}
+
+		for i, fieldName := range fieldNames {
+			dataMap[fieldName] = results[i]
+		}
+
+		dataMapList = append(dataMapList, dataMap)
 	}
-
-	dataMapList := make([]map[string]string, 0, 32)
-	fieldNames := queryData.FieldNames
-	dataMap := make(map[string]string)
-	fieldLen := len(fieldNames)
-	results := make([]string, fieldLen)
-	interfaces := make([]interface{}, fieldLen)
-
-	log.Println("[?] before for interfaces:", fieldLen)
-	for i := 0; i < fieldLen; i++ {
-		interfaces[i] = &results[i]
-	}
-	log.Println("[?] after for interfaces")
-
-	log.Println("[?] before scan")
-	row.Scan(interfaces...)
-	log.Println("[?] after scan")
-
-	log.Println("[?] before fill")
-	for i, fieldName := range fieldNames {
-		dataMap[fieldName] = results[i]
-	}
-	log.Println("[?] after fill")
-
-	dataMapList = append(dataMapList, dataMap)
 
 	return dataMapList, nil
 }
