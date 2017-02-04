@@ -5,11 +5,12 @@ import (
 	"errors"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
+    "time"
 	"sync"
 )
 
 const (
-	saveCmdMaxLen = 4096
+	saveCmdMaxLen = 8192
 )
 
 type FieldData struct {
@@ -46,7 +47,20 @@ func (this *SqlProxy) messageLoop() {
 	for {
 		select {
 		case cmd := <-this.saveCmdList:
-			this.SaveData(cmd)
+RETRY:
+			err := this.SaveData(cmd)
+            if err != nil {
+                log.Println("[-]", err)
+                if len(this.saveCmdList) < saveCmdMaxLen {
+                    time.Sleep(time.Second * 10)
+                    select {
+                    case <-this.quitEvent:
+                        return
+                    default:
+                        goto RETRY
+                    }
+                }
+            }
 		case <-this.quitEvent:
 			return
 		}

@@ -1,13 +1,14 @@
 package sqlproxy
 
 import (
-	"fmt"
+	_ "fmt"
 	"testing"
+    "log"
 	"time"
 )
 
 func connect() (*SqlProxy, error) {
-	db := NewSqlProxy("root", "123456", "111.59.24.181", "3306", "game")
+	db := NewSqlProxy("root", "Rex137955", "127.0.0.1", "3306", "game")
 	err := db.Connect()
 	if err != nil {
 		return nil, err
@@ -15,7 +16,7 @@ func connect() (*SqlProxy, error) {
 
 	return db, nil
 }
-
+/*
 func TestQuery(t *testing.T) {
 	db, err := connect()
 	if err != nil {
@@ -58,7 +59,7 @@ func TestDisconnect(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 }
-
+*/
 func TestUpdate(t *testing.T) {
 	db, err := connect()
 	if err != nil {
@@ -78,7 +79,10 @@ func TestUpdate(t *testing.T) {
 	}
 
 	list := db.GetSaveCmdList()
-	list <- saveCmd
-
+    log.Println("[*] ready")
 	time.Sleep(10 * time.Second)
+	list <- saveCmd
+    log.Println("[*] end")
+
+	time.Sleep(100 * time.Second)
 }
