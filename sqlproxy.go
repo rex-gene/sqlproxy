@@ -154,10 +154,11 @@ func (this *SqlProxy) Connect() error {
 		return errors.New("connection already connect")
 	}
 
-	connStr := this.user + ":" + this.password + "@tcp(" + this.ip + ":" + this.port + ")/" + this.dbName + "?charset=utf8"
+	connStr := this.user + ":" + this.password + "@tcp(" + this.ip + ":" + this.port + ")/" + this.dbName + "?charset=utf8&readTimeout=5s&writeTimeout=10s&strict=true"
 
 	db, err := sql.Open("mysql", connStr)
 	if err != nil {
+        db.Close()
 		return err
 	}
 
