@@ -180,6 +180,27 @@ func (this *SqlProxy) Close() error {
 	return nil
 }
 
+func (this* SqlProxy) GetTop(fieldName string, table string) uint {
+	this.RLock()
+	defer this.RUnlock()
+    queryString := "selete " + fieldName + " from " + table + 
+                   " order by " + fieldName  + " desc limit 1"
+
+	rows, err := this.db.Query(queryString)
+	if err != nil {
+		return 0
+	}
+
+    rows.Next()
+    maxUid := uint(0)
+    err = rows.Scan(&maxUid)
+    if err != nil {
+        return 0
+    }
+
+    return maxUid
+}
+
 func (this *SqlProxy) LoadData(queryData *QueryCmd) ([]map[string]string, error) {
 	this.RLock()
 	defer this.RUnlock()
@@ -208,7 +229,7 @@ func (this *SqlProxy) LoadData(queryData *QueryCmd) ([]map[string]string, error)
 	log.Println("[?] query string:", queryString)
 	rows, err := this.db.Query(queryString)
 	if err != nil {
-		return nil, errors.New("can not read data")
+		return nil, err
 	}
 	log.Println("[?] after query string")
 
